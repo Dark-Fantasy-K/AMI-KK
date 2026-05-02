@@ -63,6 +63,7 @@ LIST_ONLY=false
 HF_REPO="GabrieleMagrini/FRED"
 GDRIVE_FOLDER="1pISIErXOx76xmCqkwhS3-azWOMlTKZMp"
 TRAIN_THRESHOLD=100  # seq numbers 0–99 → train, 100+ → test
+HF_TOKEN="${HF_TOKEN:-}"   # read from env; override with --token
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -81,6 +82,8 @@ while [[ $# -gt 0 ]]; do
         -e|--test)
             [[ "$2" =~ ^[0-9]+$ ]] || error "--test requires a non-negative integer"
             MAX_TEST="$2"; shift 2 ;;
+        --token)
+            HF_TOKEN="$2"; shift 2 ;;
         -l|--list)
             LIST_ONLY=true; shift ;;
         -h|--help)
@@ -131,11 +134,12 @@ ensure_hf_hub
 step "Listing available sequences on HuggingFace"
 
 SEQ_LIST_JSON=$(python3 - <<PYEOF
-import json, re, sys
+import json, re, sys, os
 from huggingface_hub import list_repo_files
 
+token = os.environ.get("HF_TOKEN") or None
 try:
-    all_files = list(list_repo_files("$HF_REPO", repo_type="dataset"))
+    all_files = list(list_repo_files("$HF_REPO", repo_type="dataset", token=token))
 except Exception as e:
     print(json.dumps({"error": str(e)}))
     sys.exit(0)
@@ -211,8 +215,8 @@ mkdir -p "$FRED_ROOT"
 TMP_DIR="$FRED_ROOT/.download_tmp"
 mkdir -p "$TMP_DIR/zips"
 
-python3 - "$SEQ_LIST_JSON" "$MAX_TRAIN" "$MAX_TEST" "$TMP_DIR/zips" "$HF_REPO" <<'PYEOF'
-import json, sys
+HF_TOKEN="$HF_TOKEN" python3 - "$SEQ_LIST_JSON" "$MAX_TRAIN" "$MAX_TEST" "$TMP_DIR/zips" "$HF_REPO" <<'PYEOF'
+import json, os, sys
 from pathlib import Path
 from huggingface_hub import hf_hub_download
 
@@ -221,6 +225,7 @@ max_train = int(sys.argv[2])
 max_test  = int(sys.argv[3])
 dest      = Path(sys.argv[4])
 repo      = sys.argv[5]
+token     = os.environ.get("HF_TOKEN") or None
 
 sel_train = data["train"] if max_train == 0 else data["train"][:max_train]
 sel_test  = data["test"]  if max_test  == 0 else data["test"][:max_test]
@@ -242,6 +247,7 @@ for i, entry in enumerate(selected, 1):
         repo_type="dataset",
         filename=fname,
         local_dir=str(dest),
+        token=token,
     )
 
 print(f"\nAll {len(selected)} sequences downloaded to {dest}")
@@ -488,18 +494,4 @@ info "Temporary files removed."
 # ---------------------------------------------------------------------------
 echo
 echo -e "${BOLD}${GREEN}✓ FRED dataset ready at: $FRED_ROOT${NC}"
-echo
-echo "Next steps:"
-echo "  1. Update configs/config.yaml → dataset.root: $FRED_ROOT"
-echo "  2. Train the hybrid model:"
-echo "       python models/detection/hybrid/train.py --config configs/config.yaml"
-echo "  3. Download reconstruction weights and reconstruct:"
-echo "       bash models/reconstruction/e2vid/download_weights.sh /data/weights"
-echo "       python models/reconstruction/e2vid/reconstruct.py \\"
-echo "           --fred_root $FRED_ROOT --weights /data/weights/e2vid.pth \\"
-echo "           --output /data/reconstructed/e2vid"
-echo "  4. Compare all pipelines:"
-echo "       python evaluation/compare.py --fred_root $FRED_ROOT \\"
-echo "           --e2vid_frames /data/reconstructed/e2vid \\"
-echo "           --firenet_frames /data/reconstructed/firenet"
-echo
+
