@@ -1,0 +1,33 @@
+# E2VID training environment
+#
+# Create:
+#   conda env create -f environment.yml
+#   conda activate e2vid
+#
+# For GPU training, install the matching CUDA toolkit first:
+#   CUDA 11.x:  conda install pytorch-cuda=11.8 -c pytorch -c nvidia
+#   CUDA 12.x:  conda install pytorch-cuda=12.1 -c pytorch -c nvidia
+
+name: e2vid
+
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pytorch>=2.0
+  - torchvision
+  - numpy
+  - opencv              # headless OpenCV via conda-forge
+  - h5py
+  - pyyaml
+  - matplotlib
+  - jupyterlab
+  - ipykernel
+  - tqdm
+  - pip
+  - pip:
+    - gdown             # download pretrained weights
