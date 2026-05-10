@@ -1,5 +1,6 @@
 services:
   e2vid:
+    image: kkdocking/e2vid:test
     build: .
     ports:
       - "5000:5000"
