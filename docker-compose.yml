@@ -1,0 +1,12 @@
+services:
+  e2vid:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - e2vid_jobs:/tmp/e2vid_jobs
+    restart: unless-stopped
+
+volumes:
+  e2vid_jobs:

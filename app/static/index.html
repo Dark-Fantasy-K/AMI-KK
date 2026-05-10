@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E2VID Reconstruction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 16px;
+  }
+
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: #718096; margin-bottom: 40px; font-size: 0.9rem; }
+
+  .card {
+    background: #1a1f2e;
+    border: 1px solid #2d3748;
+    border-radius: 12px;
+    padding: 32px;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 24px;
+  }
+
+  /* Drop zone */
+  #drop-zone {
+    border: 2px dashed #4a5568;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 24px;
+  }
+  #drop-zone:hover, #drop-zone.over { border-color: #667eea; background: #1e2540; }
+  #drop-zone svg { width: 40px; height: 40px; color: #4a5568; margin-bottom: 12px; }
+  #drop-zone p { color: #a0aec0; font-size: 0.9rem; }
+  #drop-zone strong { color: #667eea; }
+  #file-name { margin-top: 8px; color: #68d391; font-size: 0.85rem; min-height: 1.2em; }
+
+  /* Options */
+  .options { display: flex; gap: 16px; margin-bottom: 24px; }
+  .opt-group { flex: 1; }
+  .opt-group label { display: block; font-size: 0.8rem; color: #a0aec0; margin-bottom: 6px; }
+  .opt-group input {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid #2d3748;
+    border-radius: 6px;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Button */
+  #submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #submit-btn:hover:not(:disabled) { background: #5a67d8; }
+  #submit-btn:disabled { background: #2d3748; color: #718096; cursor: not-allowed; }
+
+  /* Progress */
+  #progress-card { display: none; }
+  .status-label { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; }
+  #status-msg { color: #e2e8f0; font-weight: 500; margin-bottom: 16px; }
+
+  .bar-wrap {
+    background: #2d3748;
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 99px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  #progress-pct { font-size: 0.8rem; color: #718096; text-align: right; }
+
+  /* Upload progress */
+  #upload-bar-wrap {
+    background: #2d3748;
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: none;
+  }
+  #upload-bar {
+    height: 100%;
+    background: #48bb78;
+    border-radius: 99px;
+    width: 0%;
+    transition: width 0.2s;
+  }
+
+  /* Video */
+  #video-card { display: none; }
+  #video-card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+  video {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+  }
+  #download-btn {
+    display: block;
+    margin-top: 12px;
+    text-align: center;
+    padding: 10px;
+    background: #2d3748;
+    color: #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+  }
+  #download-btn:hover { background: #4a5568; }
+
+  .error { color: #fc8181; margin-top: 12px; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>E2VID Reconstruction</h1>
+<p class="subtitle">Upload an events .npy file to reconstruct a video</p>
+
+<!-- Upload card -->
+<div class="card">
+  <div id="drop-zone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+    </svg>
+    <p>Drag &amp; drop your <strong>.npy</strong> file here, or <strong>click to browse</strong></p>
+    <div id="file-name"></div>
+  </div>
+  <input type="file" id="file-input" accept=".npy" style="display:none">
+
+  <div class="options">
+    <div class="opt-group">
+      <label>Events per frame</label>
+      <input type="number" id="events-per-frame" value="200000" min="1000" step="10000">
+    </div>
+    <div class="opt-group">
+      <label>Time bins</label>
+      <input type="number" id="num-bins" value="5" min="1" max="20">
+    </div>
+  </div>
+
+  <div id="upload-bar-wrap"><div id="upload-bar"></div></div>
+
+  <button id="submit-btn" disabled>Select a file first</button>
+  <div id="upload-error" class="error"></div>
+</div>
+
+<!-- Progress card -->
+<div class="card" id="progress-card">
+  <div class="status-label">Status</div>
+  <div id="status-msg">Starting…</div>
+  <div class="bar-wrap"><div id="progress-bar"></div></div>
+  <div id="progress-pct">0%</div>
+</div>
+
+<!-- Video card -->
+<div class="card" id="video-card">
+  <h2>Reconstructed Video</h2>
+  <video id="video-player" controls autoplay loop></video>
+  <a id="download-btn" href="#" download="reconstruction.mp4">⬇ Download MP4</a>
+</div>
+
+<script>
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const fileName  = document.getElementById('file-name');
+  const submitBtn = document.getElementById('submit-btn');
+  const uploadError = document.getElementById('upload-error');
+
+  let selectedFile = null;
+
+  // File selection
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+    setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(file) {
+    if (!file || !file.name.endsWith('.npy')) {
+      fileName.textContent = 'Please select a .npy file';
+      fileName.style.color = '#fc8181';
+      return;
+    }
+    selectedFile = file;
+    fileName.textContent = `${file.name}  (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+    fileName.style.color = '#68d391';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Upload & Reconstruct';
+  }
+
+  // Submit
+  submitBtn.addEventListener('click', startJob);
+
+  function startJob() {
+    if (!selectedFile) return;
+    uploadError.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading…';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('events_per_frame', document.getElementById('events-per-frame').value);
+    formData.append('num_bins', document.getElementById('num-bins').value);
+
+    const xhr = new XMLHttpRequest();
+
+    // Upload progress
+    const uploadWrap = document.getElementById('upload-bar-wrap');
+    const uploadBar  = document.getElementById('upload-bar');
+    uploadWrap.style.display = 'block';
+
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const pct = (e.loaded / e.total * 100).toFixed(1);
+        uploadBar.style.width = pct + '%';
+        submitBtn.textContent = `Uploading… ${pct}%`;
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      uploadWrap.style.display = 'none';
+      if (xhr.status !== 200) {
+        uploadError.textContent = 'Upload failed: ' + xhr.responseText;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Retry';
+        return;
+      }
+      const { job_id } = JSON.parse(xhr.responseText);
+      showProgress();
+      pollStatus(job_id);
+    });
+
+    xhr.addEventListener('error', () => {
+      uploadError.textContent = 'Network error during upload.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Retry';
+    });
+
+    xhr.open('POST', '/api/reconstruct');
+    xhr.send(formData);
+  }
+
+  function showProgress() {
+    document.getElementById('progress-card').style.display = 'block';
+    document.getElementById('status-msg').textContent = 'Starting…';
+    setProgress(0);
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct.toFixed(0) + '%';
+    if (label) document.getElementById('status-msg').textContent = label;
+  }
+
+  function pollStatus(jobId) {
+    fetch(`/api/status/${jobId}`)
+      .then(r => r.json())
+      .then(job => {
+        document.getElementById('status-msg').textContent = job.message || job.status;
+
+        if (job.status === 'reconstructing' && job.total > 0) {
+          setProgress(job.done / job.total * 90, job.message);
+        } else if (job.status === 'encoding') {
+          setProgress(95, 'Encoding video…');
+        } else if (job.status === 'loading') {
+          setProgress(5, 'Loading events…');
+        }
+
+        if (job.status === 'done') {
+          setProgress(100, 'Done!');
+          showVideo(jobId);
+          return;
+        }
+        if (job.status === 'error') {
+          document.getElementById('status-msg').textContent = '❌ ' + job.message;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Try Again';
+          return;
+        }
+        setTimeout(() => pollStatus(jobId), 1500);
+      })
+      .catch(() => setTimeout(() => pollStatus(jobId), 3000));
+  }
+
+  function showVideo(jobId) {
+    const videoUrl = `/api/video/${jobId}`;
+    const videoCard   = document.getElementById('video-card');
+    const videoPlayer = document.getElementById('video-player');
+    const downloadBtn = document.getElementById('download-btn');
+
+    videoPlayer.src = videoUrl;
+    downloadBtn.href = videoUrl;
+    videoCard.style.display = 'block';
+    videoCard.scrollIntoView({ behavior: 'smooth' });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Reconstruct Another';
+  }
+</script>
+</body>
+</html>
