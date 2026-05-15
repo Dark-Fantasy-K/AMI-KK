@@ -1,160 +1,318 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>E2VID Reconstruction</title>
+<title>Event2Gray</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ── Modern reset and variables ───────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #059669; /* Modern emerald green */
+    --primary-hover: #047857;
+    --primary-light: #ecfdf5;
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --radius: 12px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: #0f1117;
-    color: #e2e8f0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 48px 16px;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 3.5rem 1.25rem;
+    line-height: 1.5;
   }
 
-  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
-  .subtitle { color: #718096; margin-bottom: 40px; font-size: 0.9rem; }
+  /* ── Header styles ─────────────────────────────────────────────────────── */
+  h1 { 
+    font-size: 2.25rem; 
+    font-weight: 800; 
+    letter-spacing: -0.025em; 
+    margin-bottom: 0.375rem;
+    background: linear-gradient(to right, #0f172a, #334155);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub { 
+    color: var(--text-muted); 
+    font-size: 1rem; 
+    margin-bottom: 2.5rem; 
+  }
 
+  /* ── Card common layout ────────────────────────────────────────────────── */
   .card {
-    background: #1a1f2e;
-    border: 1px solid #2d3748;
-    border-radius: 12px;
-    padding: 32px;
-    width: 100%;
-    max-width: 600px;
-    margin-bottom: 24px;
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(226, 232, 240, 0.8);
   }
 
-  /* Drop zone */
+  /* ── Drag & drop zone ──────────────────────────────────────────────────── */
   #drop-zone {
-    border: 2px dashed #4a5568;
-    border-radius: 8px;
-    padding: 40px;
+    border: 2px dashed #cbd5e1;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 2.5rem 1.5rem;
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    margin-bottom: 24px;
+    background: #f8fafc;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 1.5rem;
   }
-  #drop-zone:hover, #drop-zone.over { border-color: #667eea; background: #1e2540; }
-  #drop-zone svg { width: 40px; height: 40px; color: #4a5568; margin-bottom: 12px; }
-  #drop-zone p { color: #a0aec0; font-size: 0.9rem; }
-  #drop-zone strong { color: #667eea; }
-  #file-name { margin-top: 8px; color: #68d391; font-size: 0.85rem; min-height: 1.2em; }
+  #drop-zone:hover, #drop-zone.over { 
+    border-color: var(--primary); 
+    background: var(--primary-light); 
+    transform: scale(0.995);
+  }
+  #drop-zone svg { 
+    width: 42px; 
+    height: 42px; 
+    color: var(--text-muted); 
+    margin-bottom: 0.75rem;
+    transition: color 0.2s;
+  }
+  #drop-zone:hover svg { color: var(--primary); }
+  #drop-zone p { color: #334155; font-size: 0.95rem; font-weight: 500; }
+  #drop-zone p.formats { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
+  #drop-zone strong { color: var(--primary); font-weight: 600; }
+  #file-name { margin-top: 0.75rem; font-size: 0.875rem; min-height: 1.25rem; font-weight: 600; color: var(--primary); }
 
-  /* Options */
-  .options { display: flex; gap: 16px; margin-bottom: 24px; }
+  /* ── Model cards selection ─────────────────────────────────────────────── */
+  .field-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #334155;
+    margin-bottom: 0.5rem;
+  }
+  .model-cards { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+  .model-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+  }
+  .model-card input[type="radio"] { 
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    accent-color: var(--primary);
+  }
+  .model-card.selected { 
+    border-color: var(--primary); 
+    background: var(--primary-light); 
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .model-name { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
+  .model-card.selected .model-name { color: var(--primary-hover); }
+  .model-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+  /* ── Form options ──────────────────────────────────────────────────────── */
+  .options { display: flex; gap: 16px; margin-bottom: 1.5rem; }
   .opt-group { flex: 1; }
-  .opt-group label { display: block; font-size: 0.8rem; color: #a0aec0; margin-bottom: 6px; }
-  .opt-group input {
+  .opt-group label { display: block; font-weight: 600; font-size: 0.875rem; color: #334155; margin-bottom: 0.5rem; }
+  .opt-group input[type="number"] {
     width: 100%;
-    background: #0f1117;
-    border: 1px solid #2d3748;
+    background: #fff;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
-    color: #e2e8f0;
-    padding: 8px 10px;
-    font-size: 0.9rem;
+    color: var(--text-main);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.95rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+  .opt-group input[type="number"]:focus { 
+    outline: none;
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
   }
 
-  /* Button */
+  /* ── Upload & progress bars ────────────────────────────────────────────── */
+  #upload-bar-wrap {
+    background: #e2e8f0;
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+    display: none;
+  }
+  #upload-bar { height: 100%; background: var(--primary); border-radius: 99px; width: 0%; transition: width 0.15s linear; }
+
+  /* ── Action button ─────────────────────────────────────────────────────── */
   #submit-btn {
     width: 100%;
-    padding: 12px;
-    background: #667eea;
+    padding: 0.875rem 1.5rem;
+    background: var(--primary);
     color: #fff;
-    border: none;
+    border: 0;
     border-radius: 8px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  #submit-btn:hover:not(:disabled) { background: #5a67d8; }
-  #submit-btn:disabled { background: #2d3748; color: #718096; cursor: not-allowed; }
+  #submit-btn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(5, 150, 105, 0.3); }
+  #submit-btn:active:not(:disabled) { transform: translateY(0); }
+  #submit-btn:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
 
-  /* Progress */
+  .error { color: #dc2626; margin-top: 0.75rem; font-size: 0.875rem; font-weight: 500; text-align: center;}
+
+  /* ── Progress tracking dashboard ────────────────────────────────────────── */
   #progress-card { display: none; }
-  .status-label { font-size: 0.85rem; color: #a0aec0; margin-bottom: 10px; }
-  #status-msg { color: #e2e8f0; font-weight: 500; margin-bottom: 16px; }
+  .status-label { font-weight: 700; font-size: 0.875rem; color: #334155; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  #status-msg { color: var(--text-main); margin-bottom: 1rem; font-size: 0.95rem; font-weight: 500; }
+  .bar-wrap { background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: 0.5rem; }
+  #progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), #10b981); border-radius: 99px; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+  #progress-pct { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-align: right; }
 
-  .bar-wrap {
-    background: #2d3748;
-    border-radius: 99px;
-    height: 8px;
-    overflow: hidden;
-    margin-bottom: 8px;
-  }
-  #progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea, #764ba2);
-    border-radius: 99px;
-    width: 0%;
-    transition: width 0.4s ease;
-  }
-  #progress-pct { font-size: 0.8rem; color: #718096; text-align: right; }
-
-  /* Upload progress */
-  #upload-bar-wrap {
-    background: #2d3748;
-    border-radius: 99px;
-    height: 8px;
-    overflow: hidden;
-    margin-bottom: 16px;
-    display: none;
-  }
-  #upload-bar {
-    height: 100%;
-    background: #48bb78;
-    border-radius: 99px;
-    width: 0%;
-    transition: width 0.2s;
-  }
-
-  /* Video */
+  /* ── Video container ───────────────────────────────────────────────────── */
   #video-card { display: none; }
-  #video-card h2 { font-size: 1.1rem; margin-bottom: 16px; }
-  video {
-    width: 100%;
-    border-radius: 8px;
-    background: #000;
+  #video-card h2 { font-size: 1.25rem; margin-bottom: 1rem; font-weight: 700; color: var(--text-main); }
+  #video-player { width: 100%; border-radius: 8px 8px 0 0; background: #0f172a; display: block; border: 1px solid var(--border-color); border-bottom: none; }
+
+  /* ── Custom video control layout ───────────────────────────────────────── */
+  .vctrl {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 1.25rem;
   }
+  .vctrl-seek {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e2e8f0;
+    border-radius: 99px;
+    cursor: pointer;
+    outline: none;
+  }
+  .vctrl-seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .vctrl-seek::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .vctrl-seek::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .vctrl-seek::-moz-range-thumb:hover { transform: scale(1.2); }
+  
+  .vctrl-row { display: flex; align-items: center; gap: 8px; }
+  .vctrl-btn {
+    background: none;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .vctrl-btn:hover { color: var(--text-main); background: #e2e8f0; }
+  .vctrl-btn:active { transform: scale(0.95); }
+  .vctrl-btn.active { color: var(--primary); background: var(--primary-light); }
+  .vctrl-time { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 4px; }
+  .vctrl-spacer { flex: 1; }
+  .vctrl-speed {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 8px;
+    cursor: pointer;
+    outline: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .vctrl-speed:focus { border-color: var(--primary); }
+
+  /* ── Download option ───────────────────────────────────────────────────── */
   #download-btn {
-    display: block;
-    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
     text-align: center;
-    padding: 10px;
-    background: #2d3748;
-    color: #e2e8f0;
-    border-radius: 8px;
+    padding: 0.75rem;
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
+    color: #334155;
+    border-radius: 6px;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: background 0.2s;
+    font-weight: 600;
+    transition: all 0.2s;
   }
-  #download-btn:hover { background: #4a5568; }
-
-  .error { color: #fc8181; margin-top: 12px; font-size: 0.9rem; }
+  #download-btn:hover { background: #e2e8f0; color: var(--text-main); }
 </style>
 </head>
 <body>
 
-<h1>E2VID Reconstruction</h1>
-<p class="subtitle">Upload an events .npy file to reconstruct a video</p>
+<h1>Event2Gray</h1>
+<p class="sub">Event camera data &rarr; grayscale video reconstruction</p>
 
 <!-- Upload card -->
 <div class="card">
   <div id="drop-zone">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
     </svg>
-    <p>Drag &amp; drop your <strong>.npy</strong> file here, or <strong>click to browse</strong></p>
+    <p>Drag &amp; drop your event file here, or <strong>click to browse</strong></p>
+    <p class="formats">.npy &nbsp;&middot;&nbsp; .h5 / .hdf5 &nbsp;&middot;&nbsp; .csv &nbsp;&middot;&nbsp; .txt</p>
     <div id="file-name"></div>
   </div>
-  <input type="file" id="file-input" accept=".npy" style="display:none">
+  <input type="file" id="file-input" accept=".npy,.h5,.hdf5,.csv,.txt" style="display:none">
+
+  <label class="field-label">Model Architecture</label>
+  <div class="model-cards">
+    <label class="model-card selected" id="card-e2vid">
+      <input type="radio" name="model" value="e2vid" checked>
+      <div class="model-name">E2VID</div>
+      <div class="model-desc">High quality &nbsp;&middot;&nbsp; Slower</div>
+    </label>
+    <label class="model-card" id="card-firenet">
+      <input type="radio" name="model" value="firenet">
+      <div class="model-name">FireNet</div>
+      <div class="model-desc">Lightweight &nbsp;&middot;&nbsp; Real-time</div>
+    </label>
+  </div>
 
   <div class="options">
     <div class="opt-group">
@@ -168,7 +326,6 @@
   </div>
 
   <div id="upload-bar-wrap"><div id="upload-bar"></div></div>
-
   <button id="submit-btn" disabled>Select a file first</button>
   <div id="upload-error" class="error"></div>
 </div>
@@ -184,44 +341,87 @@
 <!-- Video card -->
 <div class="card" id="video-card">
   <h2>Reconstructed Video</h2>
-  <video id="video-player" controls autoplay loop></video>
-  <a id="download-btn" href="#" download="reconstruction.mp4">⬇ Download MP4</a>
+  <video id="video-player" autoplay loop></video>
+  <div class="vctrl">
+    <input type="range" class="vctrl-seek" id="seek-bar" value="0" min="0" step="0.001">
+    <div class="vctrl-row">
+      <button class="vctrl-btn" id="btn-prev" title="Previous frame">&#9664;&#9664;</button>
+      <button class="vctrl-btn" id="btn-play" title="Play / Pause">&#9646;&#9646;</button>
+      <button class="vctrl-btn" id="btn-next" title="Next frame">&#9654;&#9654;</button>
+      <span class="vctrl-time" id="vctrl-time">0:00 / 0:00</span>
+      <span class="vctrl-spacer"></span>
+      <select class="vctrl-speed" id="speed-sel" title="Playback speed">
+        <option value="0.25">0.25x</option>
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+      </select>
+      <button class="vctrl-btn" id="btn-loop" title="Toggle loop">&#8635;</button>
+      <button class="vctrl-btn" id="btn-fs" title="Fullscreen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <a id="download-btn" href="#" download="reconstruction.mp4">&#8659; Download MP4 Video</a>
 </div>
 
 <script>
-  const dropZone  = document.getElementById('drop-zone');
-  const fileInput = document.getElementById('file-input');
-  const fileName  = document.getElementById('file-name');
-  const submitBtn = document.getElementById('submit-btn');
-  const uploadError = document.getElementById('upload-error');
+  const ALLOWED_EXT  = ['.npy', '.h5', '.hdf5', '.csv', '.txt'];
+  const dropZone     = document.getElementById('drop-zone');
+  const fileInput    = document.getElementById('file-input');
+  const fileNameEl   = document.getElementById('file-name');
+  const submitBtn    = document.getElementById('submit-btn');
+  const uploadError  = document.getElementById('upload-error');
+  let selectedFile   = null;
 
-  let selectedFile = null;
-
-  // File selection
+  // ── File Selection & Drag-and-Drop Events ───────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
   dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('over');
+    e.preventDefault(); dropZone.classList.remove('over');
     setFile(e.dataTransfer.files[0]);
   });
 
+  // Verify file extensions
+  function hasAllowedExt(name) {
+    return ALLOWED_EXT.some(ext => name.toLowerCase().endsWith(ext));
+  }
+
+  // Update UI based on selected file state
   function setFile(file) {
-    if (!file || !file.name.endsWith('.npy')) {
-      fileName.textContent = 'Please select a .npy file';
-      fileName.style.color = '#fc8181';
+    if (!file || !hasAllowedExt(file.name)) {
+      fileNameEl.textContent = 'Please select a .npy, .h5, .hdf5, .csv or .txt file';
+      fileNameEl.style.color = '#dc2626';
       return;
     }
     selectedFile = file;
-    fileName.textContent = `${file.name}  (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-    fileName.style.color = '#68d391';
+    fileNameEl.textContent = `${file.name}  (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+    fileNameEl.style.color = 'var(--primary)';
     submitBtn.disabled = false;
     submitBtn.textContent = 'Upload & Reconstruct';
   }
 
-  // Submit
+  // ── Model Card Custom Radio Interactions ────────────────────────────────
+  document.querySelectorAll('.model-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      // Bugfix: Synchronize and explicitly check the inner native hidden radio button
+      const radio = card.querySelector('input[type="radio"]');
+      if(radio) radio.checked = true;
+    });
+  });
+  
+  function selectedModel() {
+    return document.querySelector('input[name="model"]:checked').value;
+  }
+
+  // ── Task Form Submission & XHR File Upload ──────────────────────────────
   submitBtn.addEventListener('click', startJob);
 
   function startJob() {
@@ -234,14 +434,14 @@
     formData.append('file', selectedFile);
     formData.append('events_per_frame', document.getElementById('events-per-frame').value);
     formData.append('num_bins', document.getElementById('num-bins').value);
+    formData.append('model', selectedModel());
 
-    const xhr = new XMLHttpRequest();
-
-    // Upload progress
+    const xhr        = new XMLHttpRequest();
     const uploadWrap = document.getElementById('upload-bar-wrap');
     const uploadBar  = document.getElementById('upload-bar');
     uploadWrap.style.display = 'block';
 
+    // Track upload progress stream
     xhr.upload.addEventListener('progress', e => {
       if (e.lengthComputable) {
         const pct = (e.loaded / e.total * 100).toFixed(1);
@@ -250,29 +450,27 @@
       }
     });
 
+    // Handle upload success/failure load event
     xhr.addEventListener('load', () => {
       uploadWrap.style.display = 'none';
       if (xhr.status !== 200) {
         uploadError.textContent = 'Upload failed: ' + xhr.responseText;
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Retry';
-        return;
+        submitBtn.disabled = false; submitBtn.textContent = 'Retry'; return;
       }
       const { job_id } = JSON.parse(xhr.responseText);
-      showProgress();
-      pollStatus(job_id);
+      showProgress(); pollStatus(job_id);
     });
 
+    // Handle network layer failures
     xhr.addEventListener('error', () => {
       uploadError.textContent = 'Network error during upload.';
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Retry';
+      submitBtn.disabled = false; submitBtn.textContent = 'Retry';
     });
-
     xhr.open('POST', '/api/reconstruct');
     xhr.send(formData);
   }
 
+  // ── Progress Polling & Dashboard Operations ────────────────────────────
   function showProgress() {
     document.getElementById('progress-card').style.display = 'block';
     document.getElementById('status-msg').textContent = 'Starting…';
@@ -285,47 +483,82 @@
     if (label) document.getElementById('status-msg').textContent = label;
   }
 
+  // Poll backend API for processing jobs status recursively
   function pollStatus(jobId) {
     fetch(`/api/status/${jobId}`)
       .then(r => r.json())
       .then(job => {
         document.getElementById('status-msg').textContent = job.message || job.status;
-
-        if (job.status === 'reconstructing' && job.total > 0) {
-          setProgress(job.done / job.total * 90, job.message);
-        } else if (job.status === 'encoding') {
-          setProgress(95, 'Encoding video…');
-        } else if (job.status === 'loading') {
-          setProgress(5, 'Loading events…');
-        }
-
-        if (job.status === 'done') {
-          setProgress(100, 'Done!');
-          showVideo(jobId);
-          return;
-        }
+        if (job.status === 'reconstructing' && job.total > 0) setProgress(job.done / job.total * 90, job.message);
+        else if (job.status === 'encoding') setProgress(95, 'Encoding video…');
+        else if (job.status === 'loading')  setProgress(5,  'Loading events…');
+        
+        if (job.status === 'done')  { setProgress(100, 'Done!'); showVideo(jobId); return; }
         if (job.status === 'error') {
           document.getElementById('status-msg').textContent = '❌ ' + job.message;
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Try Again';
-          return;
+          submitBtn.disabled = false; submitBtn.textContent = 'Try Again'; return;
         }
         setTimeout(() => pollStatus(jobId), 1500);
       })
       .catch(() => setTimeout(() => pollStatus(jobId), 3000));
   }
 
-  function showVideo(jobId) {
-    const videoUrl = `/api/video/${jobId}`;
-    const videoCard   = document.getElementById('video-card');
-    const videoPlayer = document.getElementById('video-player');
-    const downloadBtn = document.getElementById('download-btn');
+  // ── Custom HTML5 Video Custom Controller Implementations ────────────────
+  const video     = document.getElementById('video-player');
+  const seekBar   = document.getElementById('seek-bar');
+  const timeLabel = document.getElementById('vctrl-time');
+  const btnPlay   = document.getElementById('btn-play');
+  const btnPrev   = document.getElementById('btn-prev');
+  const btnNext   = document.getElementById('btn-next');
+  const btnLoop   = document.getElementById('btn-loop');
+  const btnFs     = document.getElementById('btn-fs');
+  const speedSel  = document.getElementById('speed-sel');
+  const dlBtn     = document.getElementById('download-btn');
+  const FPS       = 30;
 
-    videoPlayer.src = videoUrl;
-    downloadBtn.href = videoUrl;
+  // Format seconds counter to mm:ss format
+  function fmtTime(s) {
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  }
+
+  // Synchronize playback timeline tick events
+  video.addEventListener('timeupdate', () => {
+    if (!video.duration) return;
+    seekBar.value = video.currentTime / video.duration;
+    timeLabel.textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
+  });
+  video.addEventListener('play',  () => { btnPlay.innerHTML = '&#9646;&#9646;'; });
+  video.addEventListener('pause', () => { btnPlay.innerHTML = '&#9654;'; });
+
+  // Direct scrub seeking controls
+  seekBar.addEventListener('input', () => { if (video.duration) video.currentTime = seekBar.value * video.duration; });
+  btnPlay.addEventListener('click', () => video.paused ? video.play() : video.pause());
+  
+  // Frame-by-frame navigation adjustments
+  btnPrev.addEventListener('click', () => { video.pause(); video.currentTime = Math.max(0, video.currentTime - 1 / FPS); });
+  btnNext.addEventListener('click', () => { video.pause(); video.currentTime = Math.min(video.duration || 0, video.currentTime + 1 / FPS); });
+  
+  // Custom loop dynamic toggles
+  btnLoop.addEventListener('click', () => { video.loop = !video.loop; btnLoop.classList.toggle('active', video.loop); });
+  btnLoop.classList.add('active');
+  
+  // HTML5 Screen Fullscreen layout actions
+  btnFs.addEventListener('click', () => {
+    const el = document.getElementById('video-card');
+    document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen();
+  });
+  speedSel.addEventListener('change', () => { video.playbackRate = parseFloat(speedSel.value); });
+
+  // Inject reconstructed source stream URL to UI blocks
+  function showVideo(jobId) {
+    const url       = `/api/video/${jobId}`;
+    const videoCard = document.getElementById('video-card');
+    video.src  = url;
+    video.loop = true;
+    dlBtn.href = url;
     videoCard.style.display = 'block';
     videoCard.scrollIntoView({ behavior: 'smooth' });
-
     submitBtn.disabled = false;
     submitBtn.textContent = 'Reconstruct Another';
   }

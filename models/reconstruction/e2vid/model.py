@@ -214,6 +214,14 @@ class E2VIDNet(nn.Module):
         self.states = [None] * self.num_encoders
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        _, _, H, W = x.shape
+        # Pad input so H and W are multiples of 2^num_encoders, then crop output back.
+        factor = 2 ** self.num_encoders
+        pad_h = (factor - H % factor) % factor
+        pad_w = (factor - W % factor) % factor
+        if pad_h or pad_w:
+            x = F.pad(x, (0, pad_w, 0, pad_h))
+
         # blocks[0] = head output (H, W, base_ch)
         # blocks[i+1] = encoder i output (H/2^(i+1), W/2^(i+1), enc_out[i])
         blocks = [self.head(x)]
@@ -226,18 +234,20 @@ class E2VIDNet(nn.Module):
         for rb in self.resblocks:
             z = rb(z)
 
-        # Decode with skip connections from corresponding encoder outputs
-        # skip at decoder step i  ← blocks[num_encoders - 1 - i]
-        # (enc_{N-1-i} output, which spatially matches decoder output at step i)
+        # Decode with skip connections from corresponding encoder outputs.
+        # Trim decoder output to match skip size in case of rounding differences.
         for i, dec in enumerate(self.decoders):
             z = dec(z)
             skip = blocks[self.num_encoders - 1 - i]
+            if z.shape != skip.shape:
+                z = z[:, :, : skip.shape[2], : skip.shape[3]]
             if self.skip_type == "sum":
                 z = z + skip
             else:
                 z = torch.cat([z, skip], dim=1)
 
-        return torch.sigmoid(self.pred(z))
+        out = torch.sigmoid(self.pred(z))
+        return out[:, :, :H, :W]
 
 
 class E2VID(nn.Module):
