@@ -1,0 +1,28 @@
+# Large data files — mounted as volumes at runtime
+data/
+.jobs/
+
+# Stray data files in root
+*.npy
+*.mp4
+*.h5
+*.hdf5
+*.csv
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dev / notebook artifacts
+notebooks/
+.git/
+.bash_history
+.jobs/
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store

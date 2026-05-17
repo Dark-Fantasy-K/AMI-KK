@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/home/kkv/miniconda3/bin/conda run *)"
+    ]
+  }
+}

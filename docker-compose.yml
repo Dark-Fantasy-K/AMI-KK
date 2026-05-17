@@ -1,12 +1,19 @@
 services:
   e2vid:
-    image: kkdocking/e2vid:test
+    image: kkdocking/e2vid:latest
     build: .
     ports:
       - "5000:5000"
     volumes:
       - ./data:/app/data
-      - e2vid_jobs:/tmp/e2vid_jobs
+      - e2vid_jobs:/app/.jobs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     restart: unless-stopped
 
 volumes:

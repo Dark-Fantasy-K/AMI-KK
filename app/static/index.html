@@ -3,396 +3,676 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Event2Gray</title>
+<title>E2VID Reconstruction Dashboard</title>
 <style>
-  /* ── Modern reset and variables ───────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --primary: #059669; /* Modern emerald green */
+    --primary:       #059669;
     --primary-hover: #047857;
     --primary-light: #ecfdf5;
-    --bg-main: #f8fafc;
-    --bg-card: #ffffff;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --radius: 12px;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --accent:        #3b82f6;
+    --accent-light:  #eff6ff;
+    --bg-main:       #f8fafc;
+    --bg-card:       #ffffff;
+    --text-main:     #0f172a;
+    --text-muted:    #64748b;
+    --border-color:  #e2e8f0;
+    --danger:        #dc2626;
+    --radius:        14px;
+    --shadow-sm:     0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md:     0 12px 28px -18px rgb(15 23 42 / 0.45);
   }
 
   body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg-main);
+    background:
+      radial-gradient(circle at top left, rgba(5, 150, 105, 0.12), transparent 32rem),
+      radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 28rem),
+      var(--bg-main);
     color: var(--text-main);
     min-height: 100vh;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 3.5rem 1.25rem;
+    padding: 22px;
     line-height: 1.5;
   }
 
-  /* ── Header styles ─────────────────────────────────────────────────────── */
-  h1 { 
-    font-size: 2.25rem; 
-    font-weight: 800; 
-    letter-spacing: -0.025em; 
-    margin-bottom: 0.375rem;
-    background: linear-gradient(to right, #0f172a, #334155);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .sub { 
-    color: var(--text-muted); 
-    font-size: 1rem; 
-    margin-bottom: 2.5rem; 
+  .app-shell {
+    width: min(1680px, 100%);
+    margin: 0 auto;
   }
 
-  /* ── Card common layout ────────────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    margin-bottom: 18px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary-hover);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 2.6vw, 3rem);
+    font-weight: 850;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .sub {
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    max-width: 620px;
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(285px, 340px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: stretch;
+    min-height: calc(100vh - 142px);
+    height: calc(100vh - 142px);
+  }
+
+  .left-panel,
+  .center-panel,
+  .right-panel {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .left-panel {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  .center-panel {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .right-panel {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .left-panel > .card {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0;
+    overflow: auto;
+  }
+
+  .center-panel > #dual-video-card,
+  .center-panel > #video-card {
+    flex: 1;
+    min-height: 0;
+    margin-bottom: 0;
+  }
+
+  .right-panel > .card {
+    margin-bottom: 0;
+  }
+
   .card {
-    background: var(--bg-card);
+    background: rgba(255, 255, 255, 0.94);
     border-radius: var(--radius);
-    padding: 2rem;
-    margin-bottom: 1.5rem;
+    padding: 18px;
+    margin-bottom: 18px;
     box-shadow: var(--shadow-md);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.92);
   }
 
-  /* ── Drag & drop zone ──────────────────────────────────────────────────── */
+  .card h2 {
+    font-size: 1.08rem;
+    margin-bottom: 0.85rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .section-hint {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    margin-top: -0.3rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Upload panel */
   #drop-zone {
     border: 2px dashed #cbd5e1;
     border-radius: calc(var(--radius) - 2px);
-    padding: 2.5rem 1.5rem;
+    padding: 2rem 1rem;
     text-align: center;
     cursor: pointer;
     background: #f8fafc;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.1rem;
   }
-  #drop-zone:hover, #drop-zone.over { 
-    border-color: var(--primary); 
-    background: var(--primary-light); 
-    transform: scale(0.995);
-  }
-  #drop-zone svg { 
-    width: 42px; 
-    height: 42px; 
-    color: var(--text-muted); 
-    margin-bottom: 0.75rem;
-    transition: color 0.2s;
-  }
+  #drop-zone:hover, #drop-zone.over { border-color: var(--primary); background: var(--primary-light); transform: translateY(-1px); }
+  #drop-zone svg { width: 42px; height: 42px; color: var(--text-muted); margin-bottom: 0.75rem; transition: color 0.2s; }
   #drop-zone:hover svg { color: var(--primary); }
-  #drop-zone p { color: #334155; font-size: 0.95rem; font-weight: 500; }
-  #drop-zone p.formats { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
-  #drop-zone strong { color: var(--primary); font-weight: 600; }
-  #file-name { margin-top: 0.75rem; font-size: 0.875rem; min-height: 1.25rem; font-weight: 600; color: var(--primary); }
+  #drop-zone p { color: #334155; font-size: 0.92rem; font-weight: 650; }
+  #drop-zone p.formats { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem; font-weight: 500; }
+  #drop-zone strong { color: var(--primary); font-weight: 800; }
+  #file-name { margin-top: 0.75rem; font-size: 0.83rem; min-height: 1.25rem; font-weight: 700; color: var(--primary); word-break: break-all; }
 
-  /* ── Model cards selection ─────────────────────────────────────────────── */
-  .field-label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #334155;
-    margin-bottom: 0.5rem;
-  }
-  .model-cards { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+  .field-label { display: block; font-weight: 800; font-size: 0.84rem; color: #334155; margin-bottom: 0.5rem; }
+  .model-cards { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 1.1rem; }
   .model-card {
-    flex: 1;
     background: #fff;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    padding: 0.82rem 0.95rem;
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
     box-shadow: var(--shadow-sm);
     position: relative;
   }
-  .model-card input[type="radio"] { 
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    accent-color: var(--primary);
-  }
-  .model-card.selected { 
-    border-color: var(--primary); 
-    background: var(--primary-light); 
-    box-shadow: 0 0 0 1px var(--primary);
-  }
-  .model-name { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
+  .model-card input[type="radio"] { position: absolute; top: 12px; right: 12px; accent-color: var(--primary); }
+  .model-card.selected { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 0 1px var(--primary); }
+  .model-name { font-size: 0.94rem; font-weight: 800; color: var(--text-main); }
   .model-card.selected .model-name { color: var(--primary-hover); }
-  .model-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+  .model-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; }
 
-  /* ── Form options ──────────────────────────────────────────────────────── */
-  .options { display: flex; gap: 16px; margin-bottom: 1.5rem; }
-  .opt-group { flex: 1; }
-  .opt-group label { display: block; font-weight: 600; font-size: 0.875rem; color: #334155; margin-bottom: 0.5rem; }
+  .options { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 1.1rem; }
+  .opt-group label { display: block; font-weight: 800; font-size: 0.83rem; color: #334155; margin-bottom: 0.48rem; }
   .opt-group input[type="number"] {
     width: 100%;
     background: #fff;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     color: var(--text-main);
-    padding: 0.625rem 0.75rem;
+    padding: 0.65rem 0.75rem;
     font-size: 0.95rem;
     box-shadow: var(--shadow-sm);
     transition: all 0.2s;
   }
-  .opt-group input[type="number"]:focus { 
-    outline: none;
-    border-color: var(--primary); 
-    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
-  }
+  .opt-group input[type="number"]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
 
-  /* ── Upload & progress bars ────────────────────────────────────────────── */
-  #upload-bar-wrap {
-    background: #e2e8f0;
-    border-radius: 99px;
-    height: 6px;
-    overflow: hidden;
-    margin-bottom: 1.25rem;
-    display: none;
-  }
+  #upload-bar-wrap { background: #e2e8f0; border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 1rem; display: none; }
   #upload-bar { height: 100%; background: var(--primary); border-radius: 99px; width: 0%; transition: width 0.15s linear; }
 
-  /* ── Action button ─────────────────────────────────────────────────────── */
-  #submit-btn {
+  #full-job-btn {
     width: 100%;
-    padding: 0.875rem 1.5rem;
-    background: var(--primary);
+    padding: 0.95rem 1.1rem;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
     color: #fff;
     border: 0;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
+    border-radius: 10px;
+    font-size: 0.98rem;
+    font-weight: 800;
     cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+    box-shadow: 0 12px 22px -16px rgba(5, 150, 105, 0.8);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  #submit-btn:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 6px 8px -1px rgba(5, 150, 105, 0.3); }
-  #submit-btn:active:not(:disabled) { transform: translateY(0); }
-  #submit-btn:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
+  #full-job-btn:hover:not(:disabled) { opacity: 0.94; transform: translateY(-1px); }
+  #full-job-btn:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
 
-  .error { color: #dc2626; margin-top: 0.75rem; font-size: 0.875rem; font-weight: 500; text-align: center;}
-
-  /* ── Progress tracking dashboard ────────────────────────────────────────── */
-  #progress-card { display: none; }
-  .status-label { font-weight: 700; font-size: 0.875rem; color: #334155; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  #status-msg { color: var(--text-main); margin-bottom: 1rem; font-size: 0.95rem; font-weight: 500; }
-  .bar-wrap { background: #e2e8f0; border-radius: 99px; height: 10px; overflow: hidden; margin-bottom: 0.5rem; }
-  #progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), #10b981); border-radius: 99px; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-  #progress-pct { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); text-align: right; }
-
-  /* ── Video container ───────────────────────────────────────────────────── */
-  #video-card { display: none; }
-  #video-card h2 { font-size: 1.25rem; margin-bottom: 1rem; font-weight: 700; color: var(--text-main); }
-  #video-player { width: 100%; border-radius: 8px 8px 0 0; background: #0f172a; display: block; border: 1px solid var(--border-color); border-bottom: none; }
-
-  /* ── Custom video control layout ───────────────────────────────────────── */
-  .vctrl {
-    background: #f8fafc;
+  .action-row { display: grid; grid-template-columns: 1fr; gap: 9px; }
+  #submit-btn,
+  #preview-btn {
+    width: 100%;
+    padding: 0.72rem 1rem;
+    background: #fff;
+    color: #334155;
     border: 1px solid var(--border-color);
-    border-radius: 0 0 8px 8px;
-    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  #submit-btn:hover:not(:disabled) { background: var(--primary-light); border-color: var(--primary); color: var(--primary-hover); }
+  #preview-btn:hover:not(:disabled) { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  #submit-btn:disabled,
+  #preview-btn:disabled { color: #94a3b8; cursor: not-allowed; }
+  .error { color: var(--danger); margin-top: 0.75rem; font-size: 0.84rem; font-weight: 700; text-align: center; }
+
+  /* Progress cards */
+  #progress-card { display: none; }
+  .status-label { font-weight: 800; font-size: 0.78rem; color: #334155; margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  #status-msg { color: var(--text-main); margin-bottom: 0.8rem; font-size: 0.9rem; font-weight: 650; }
+  .bar-wrap { background: #e2e8f0; border-radius: 99px; height: 9px; overflow: hidden; margin-bottom: 0.4rem; }
+  .bar-fill { height: 100%; border-radius: 99px; width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+  #progress-bar { background: linear-gradient(90deg, var(--primary), #10b981); }
+  #progress-pct { font-size: 0.82rem; font-weight: 750; color: var(--text-muted); text-align: right; }
+
+  #dual-progress-card { display: none; }
+  .dual-progress-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .progress-msg { font-size: 0.86rem; color: var(--text-main); margin-bottom: 0.45rem; font-weight: 650; min-height: 1.25rem; }
+  .progress-pct { font-size: 0.78rem; font-weight: 750; color: var(--text-muted); text-align: right; margin-top: 0.25rem; }
+  #recon-bar { background: linear-gradient(90deg, var(--primary), #10b981); }
+  #prev-bar  { background: linear-gradient(90deg, var(--accent), #60a5fa); }
+  .col-label { font-weight: 850; font-size: 0.84rem; margin-bottom: 0.55rem; }
+  .col-label.recon { color: var(--primary-hover); }
+  .col-label.prev  { color: var(--accent); }
+
+  /* Video area */
+  #dual-video-card {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 1.25rem;
+    overflow: hidden;
   }
-  .vctrl-seek {
-    width: 100%;
-    height: 6px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: #e2e8f0;
-    border-radius: 99px;
-    cursor: pointer;
-    outline: none;
+  #dual-video-card h2,
+  #video-card h2 { font-size: 1.08rem; font-weight: 850; margin-bottom: 0.4rem; }
+  .dual-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    flex: 1;
+    min-height: 0;
+    align-items: center;
   }
-  .vctrl-seek::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--primary);
-    cursor: pointer;
-    transition: transform 0.1s;
+  .vid-col {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
-  .vctrl-seek::-webkit-slider-thumb:hover { transform: scale(1.2); }
-  .vctrl-seek::-moz-range-thumb {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--primary);
-    border: none;
-    cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .vctrl-seek::-moz-range-thumb:hover { transform: scale(1.2); }
-  
-  .vctrl-row { display: flex; align-items: center; gap: 8px; }
-  .vctrl-btn {
-    background: none;
-    border: none;
-    color: #475569;
-    cursor: pointer;
-    padding: 6px;
+  .vid-col-title {
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0.55rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    display: inline-block;
+    align-self: flex-start;
+  }
+  .vid-col-title.recon { color: var(--primary-hover); background: var(--primary-light); }
+  .vid-col-title.prev  { color: var(--accent); background: var(--accent-light); }
+  .video-surface {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(15, 23, 42, 0.82);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   }
-  .vctrl-btn:hover { color: var(--text-main); background: #e2e8f0; }
-  .vctrl-btn:active { transform: scale(0.95); }
-  .vctrl-btn.active { color: var(--primary); background: var(--primary-light); }
-  .vctrl-time { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 4px; }
-  .vctrl-spacer { flex: 1; }
-  .vctrl-speed {
-    background: #fff;
+  .vid-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    padding: 1rem;
+  }
+  .dual-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    background: #0f172a;
+    display: none;
+    object-fit: contain;
+  }
+  .dual-video  {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    display: none;
+    background: #0f172a;
+    border: 0;
+    object-fit: contain;
+  }
+  .dual-dl-row { display: flex; gap: 10px; margin-top: auto; }
+  .dual-dl-row .dl-btn { flex: 1; display: none; }
+
+  #video-card {
+    display: none;
+    flex-direction: column;
+  }
+  #video-player {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px 12px 0 0;
+    background: #0f172a;
+    display: block;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: #334155;
-    font-size: 0.8rem;
-    font-weight: 500;
-    padding: 4px 8px;
-    cursor: pointer;
-    outline: none;
-    box-shadow: var(--shadow-sm);
+    border-bottom: none;
+    object-fit: contain;
   }
+  .vctrl { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 0 0 12px 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+  .vctrl-seek { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: #e2e8f0; border-radius: 99px; cursor: pointer; outline: none; }
+  .vctrl-seek::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--primary); cursor: pointer; transition: transform 0.1s; }
+  .vctrl-seek::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  .vctrl-seek::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--primary); border: none; cursor: pointer; }
+  .vctrl-row { display: flex; align-items: center; gap: 8px; }
+  .vctrl-btn { background: none; border: none; color: #475569; cursor: pointer; padding: 6px; border-radius: 6px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .vctrl-btn:hover { color: var(--text-main); background: #e2e8f0; }
+  .vctrl-btn.active { color: var(--primary); background: var(--primary-light); }
+  .vctrl-time { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; margin-left: 4px; }
+  .vctrl-spacer { flex: 1; }
+  .vctrl-speed { background: #fff; border: 1px solid var(--border-color); border-radius: 6px; color: #334155; font-size: 0.8rem; font-weight: 600; padding: 4px 8px; cursor: pointer; outline: none; box-shadow: var(--shadow-sm); }
   .vctrl-speed:focus { border-color: var(--primary); }
 
-  /* ── Download option ───────────────────────────────────────────────────── */
-  #download-btn {
+  /* Evaluation panel */
+  .eval-card {
+    position: static;
+    height: auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px 18px;
+    align-items: start;
+    padding: 14px 16px;
+  }
+  .eval-card h2 {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+  .eval-card .section-hint {
+    margin: 0;
+    align-self: center;
+  }
+  .eval-empty {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+  .eval-list {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .report-group-title {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 850;
+    margin-bottom: 4px;
+  }
+  .report-bar {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 0.75rem 0.85rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-variant-numeric: tabular-nums;
+    display: none;
+    line-height: 1.65;
+    min-height: 52px;
+  }
+  .report-bar span { color: var(--text-main); font-weight: 850; }
+  .metric-note {
+    grid-column: 1 / -1;
+    margin-top: -2px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+  .dl-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    width: 100%;
-    text-align: center;
     padding: 0.75rem;
     background: #f1f5f9;
     border: 1px solid var(--border-color);
     color: #334155;
-    border-radius: 6px;
+    border-radius: 9px;
     text-decoration: none;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 800;
     transition: all 0.2s;
   }
-  #download-btn:hover { background: #e2e8f0; color: var(--text-main); }
+  .dl-btn:hover { background: #e2e8f0; color: var(--text-main); }
+  #download-btn { width: 100%; text-align: center; }
+
+  @media (max-width: 1180px) {
+    .workspace {
+      grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+      min-height: calc(100vh - 142px);
+      height: auto;
+    }
+    .eval-list { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 860px) {
+    body { padding: 14px; }
+    .topbar { display: block; }
+    .sub { margin-top: 8px; }
+    .workspace {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      min-height: auto;
+      height: auto;
+    }
+    .left-panel,
+    .center-panel,
+    .right-panel {
+      grid-column: 1;
+      grid-row: auto;
+    }
+    .dual-row,
+    .dual-progress-row,
+    .eval-list { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-
-<h1>Event2Gray</h1>
-<p class="sub">Event camera data &rarr; grayscale video reconstruction</p>
-
-<!-- Upload card -->
-<div class="card">
-  <div id="drop-zone">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
-    </svg>
-    <p>Drag &amp; drop your event file here, or <strong>click to browse</strong></p>
-    <p class="formats">.npy &nbsp;&middot;&nbsp; .h5 / .hdf5 &nbsp;&middot;&nbsp; .csv &nbsp;&middot;&nbsp; .txt</p>
-    <div id="file-name"></div>
-  </div>
-  <input type="file" id="file-input" accept=".npy,.h5,.hdf5,.csv,.txt" style="display:none">
-
-  <label class="field-label">Model Architecture</label>
-  <div class="model-cards">
-    <label class="model-card selected" id="card-e2vid">
-      <input type="radio" name="model" value="e2vid" checked>
-      <div class="model-name">E2VID</div>
-      <div class="model-desc">High quality &nbsp;&middot;&nbsp; Slower</div>
-    </label>
-    <label class="model-card" id="card-firenet">
-      <input type="radio" name="model" value="firenet">
-      <div class="model-name">FireNet</div>
-      <div class="model-desc">Lightweight &nbsp;&middot;&nbsp; Real-time</div>
-    </label>
-  </div>
-
-  <div class="options">
-    <div class="opt-group">
-      <label>Events per frame</label>
-      <input type="number" id="events-per-frame" value="200000" min="1000" step="10000">
+<div class="app-shell">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">E2VID Course Project</div>
+      <h1>Event-to-Video Reconstruction Dashboard</h1>
     </div>
-    <div class="opt-group">
-      <label>Time bins</label>
-      <input type="number" id="num-bins" value="5" min="1" max="20">
-    </div>
-  </div>
+    <p class="sub">Upload event-camera data, run reconstruction, preview the generated videos, and review evaluation metrics from the Flask backend.</p>
+  </header>
 
-  <div id="upload-bar-wrap"><div id="upload-bar"></div></div>
-  <button id="submit-btn" disabled>Select a file first</button>
-  <div id="upload-error" class="error"></div>
-</div>
+  <main class="workspace">
+    <aside class="left-panel">
+      <div class="card">
+        <h2>Input & Controls</h2>
+        <p class="section-hint">Select an event file and choose reconstruction parameters.</p>
 
-<!-- Progress card -->
-<div class="card" id="progress-card">
-  <div class="status-label">Status</div>
-  <div id="status-msg">Starting…</div>
-  <div class="bar-wrap"><div id="progress-bar"></div></div>
-  <div id="progress-pct">0%</div>
-</div>
+        <div id="drop-zone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L8 8m4-4 4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+          </svg>
+          <p>Drag and drop your event file here, or <strong>click to browse</strong></p>
+          <p class="formats">.npy &nbsp;&middot;&nbsp; .h5 / .hdf5 &nbsp;&middot;&nbsp; .csv &nbsp;&middot;&nbsp; .txt</p>
+          <div id="file-name"></div>
+        </div>
+        <input type="file" id="file-input" accept=".npy,.h5,.hdf5,.csv,.txt" style="display:none">
 
-<!-- Video card -->
-<div class="card" id="video-card">
-  <h2>Reconstructed Video</h2>
-  <video id="video-player" autoplay loop></video>
-  <div class="vctrl">
-    <input type="range" class="vctrl-seek" id="seek-bar" value="0" min="0" step="0.001">
-    <div class="vctrl-row">
-      <button class="vctrl-btn" id="btn-prev" title="Previous frame">&#9664;&#9664;</button>
-      <button class="vctrl-btn" id="btn-play" title="Play / Pause">&#9646;&#9646;</button>
-      <button class="vctrl-btn" id="btn-next" title="Next frame">&#9654;&#9654;</button>
-      <span class="vctrl-time" id="vctrl-time">0:00 / 0:00</span>
-      <span class="vctrl-spacer"></span>
-      <select class="vctrl-speed" id="speed-sel" title="Playback speed">
-        <option value="0.25">0.25x</option>
-        <option value="0.5">0.5x</option>
-        <option value="1" selected>1x</option>
-        <option value="2">2x</option>
-        <option value="4">4x</option>
-      </select>
-      <button class="vctrl-btn" id="btn-loop" title="Toggle loop">&#8635;</button>
-      <button class="vctrl-btn" id="btn-fs" title="Fullscreen">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-  <a id="download-btn" href="#" download="reconstruction.mp4">&#8659; Download MP4 Video</a>
+        <label class="field-label">Model Architecture</label>
+        <div class="model-cards">
+          <label class="model-card selected" id="card-e2vid">
+            <input type="radio" name="model" value="e2vid" checked>
+            <div class="model-name">E2VID</div>
+            <div class="model-desc">High quality &nbsp;&middot;&nbsp; Slower</div>
+          </label>
+          <label class="model-card" id="card-firenet">
+            <input type="radio" name="model" value="firenet">
+            <div class="model-name">FireNet</div>
+            <div class="model-desc">Lightweight &nbsp;&middot;&nbsp; Real-time</div>
+          </label>
+        </div>
+
+        <div class="options">
+          <div class="opt-group">
+            <label>Events per frame <span style="font-weight:500;color:var(--text-muted)">(0 = auto: W×H×0.35)</span></label>
+            <input type="number" id="events-per-frame" value="0" min="0" step="1000" placeholder="0 = auto">
+          </div>
+          <div class="opt-group">
+            <label>Time bins</label>
+            <input type="number" id="num-bins" value="5" min="1" max="20">
+          </div>
+        </div>
+
+        <div id="upload-bar-wrap"><div id="upload-bar"></div></div>
+
+        <button id="full-job-btn" disabled>Reconstruct + Preview Events (Parallel)</button>
+        <div class="action-row">
+          <button id="submit-btn" disabled>Reconstruct Only</button>
+          <button id="preview-btn" disabled>&#9654; Preview Events Only</button>
+        </div>
+        <div id="upload-error" class="error"></div>
+      </div>
+    </aside>
+
+    <section class="center-panel">
+      <div class="card" id="dual-progress-card">
+        <h2>Processing Status</h2>
+        <div class="dual-progress-row">
+          <div class="progress-col">
+            <div class="col-label recon">Reconstruction</div>
+            <div id="recon-msg" class="progress-msg">Starting…</div>
+            <div class="bar-wrap"><div id="recon-bar" class="bar-fill"></div></div>
+            <div id="recon-pct" class="progress-pct">0%</div>
+          </div>
+          <div class="progress-col">
+            <div class="col-label prev">Event Preview</div>
+            <div id="prev-msg" class="progress-msg">Starting…</div>
+            <div class="bar-wrap"><div id="prev-bar" class="bar-fill"></div></div>
+            <div id="prev-pct" class="progress-pct">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="progress-card">
+        <div class="status-label">Status</div>
+        <div id="status-msg">Starting…</div>
+        <div class="bar-wrap"><div id="progress-bar" class="bar-fill"></div></div>
+        <div id="progress-pct">0%</div>
+      </div>
+
+      <div class="card" id="dual-video-card">
+        <h2>Dual Video Player</h2>
+        <p class="section-hint">Reconstructed video and event-preview video are displayed side by side.</p>
+        <div class="dual-row">
+          <div class="vid-col">
+            <div class="vid-col-title recon">Reconstruction</div>
+            <div class="video-surface">
+              <div id="recon-placeholder" class="vid-placeholder">Waiting for reconstructed frames…</div>
+              <canvas id="canvas-recon" class="dual-canvas"></canvas>
+              <video id="video-recon" class="dual-video" autoplay loop controls></video>
+            </div>
+          </div>
+          <div class="vid-col">
+            <div class="vid-col-title prev">Event Preview</div>
+            <div class="video-surface">
+              <div id="prev-placeholder" class="vid-placeholder">Waiting for event-preview frames…</div>
+              <canvas id="canvas-prev" class="dual-canvas"></canvas>
+              <video id="video-prev" class="dual-video" autoplay loop controls></video>
+            </div>
+          </div>
+        </div>
+        <div class="dual-dl-row">
+          <a id="dl-recon" class="dl-btn" href="#" download="reconstruction.mp4">&#8659; Reconstruction MP4</a>
+          <a id="dl-prev" class="dl-btn" href="#" download="event_preview.mp4">&#8659; Event Preview MP4</a>
+        </div>
+      </div>
+
+      <div class="card" id="video-card">
+        <h2 id="video-title">Reconstructed Video</h2>
+        <p class="section-hint">Single-output player for reconstruction-only or preview-only jobs.</p>
+        <video id="video-player" autoplay loop></video>
+        <div class="vctrl">
+          <input type="range" class="vctrl-seek" id="seek-bar" value="0" min="0" step="0.001">
+          <div class="vctrl-row">
+            <button class="vctrl-btn" id="btn-prev" title="Previous frame">&#9664;&#9664;</button>
+            <button class="vctrl-btn" id="btn-play" title="Play / Pause">&#9646;&#9646;</button>
+            <button class="vctrl-btn" id="btn-next" title="Next frame">&#9654;&#9654;</button>
+            <span class="vctrl-time" id="vctrl-time">0:00 / 0:00</span>
+            <span class="vctrl-spacer"></span>
+            <select class="vctrl-speed" id="speed-sel">
+              <option value="0.25">0.25x</option>
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+              <option value="4">4x</option>
+            </select>
+            <button class="vctrl-btn" id="btn-loop" title="Toggle loop">&#8635;</button>
+            <button class="vctrl-btn" id="btn-fs" title="Fullscreen">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <a id="download-btn" class="dl-btn" href="#" download="reconstruction.mp4">&#8659; Download MP4</a>
+      </div>
+    </section>
+
+    <aside class="right-panel">
+      <div class="card eval-card">
+        <h2>Evaluation Results</h2>
+        <p class="section-hint">Quality and timing metrics returned by the reconstruction backend.</p>
+        <div class="eval-empty">No evaluation report yet. Run a reconstruction job to show inference time, throughput, encoding time, and optional quality metrics.</div>
+        <div class="eval-list">
+          <div>
+            <div class="report-group-title">Single Reconstruction Report</div>
+            <div id="single-report" class="report-bar"></div>
+          </div>
+          <div>
+            <div class="report-group-title">Parallel Reconstruction Report</div>
+            <div id="recon-report" class="report-bar"></div>
+          </div>
+        </div>
+        <p class="metric-note">This panel uses the existing report object from the status response. Backend interfaces and request paths are unchanged.</p>
+      </div>
+    </aside>
+  </main>
 </div>
 
 <script>
-  const ALLOWED_EXT  = ['.npy', '.h5', '.hdf5', '.csv', '.txt'];
-  const dropZone     = document.getElementById('drop-zone');
-  const fileInput    = document.getElementById('file-input');
-  const fileNameEl   = document.getElementById('file-name');
-  const submitBtn    = document.getElementById('submit-btn');
-  const uploadError  = document.getElementById('upload-error');
-  let selectedFile   = null;
+  const ALLOWED_EXT = ['.npy', '.h5', '.hdf5', '.csv', '.txt'];
+  const dropZone    = document.getElementById('drop-zone');
+  const fileInput   = document.getElementById('file-input');
+  const fileNameEl  = document.getElementById('file-name');
+  const fullJobBtn  = document.getElementById('full-job-btn');
+  const submitBtn   = document.getElementById('submit-btn');
+  const previewBtn  = document.getElementById('preview-btn');
+  const uploadError = document.getElementById('upload-error');
+  let selectedFile  = null;
 
-  // ── File Selection & Drag-and-Drop Events ───────────────────────────────
+  // ── File selection ──────────────────────────────────────────────────────
   dropZone.addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.classList.remove('over');
-    setFile(e.dataTransfer.files[0]);
-  });
+  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); setFile(e.dataTransfer.files[0]); });
 
-  // Verify file extensions
-  function hasAllowedExt(name) {
-    return ALLOWED_EXT.some(ext => name.toLowerCase().endsWith(ext));
-  }
+  function hasAllowedExt(name) { return ALLOWED_EXT.some(e => name.toLowerCase().endsWith(e)); }
 
-  // Update UI based on selected file state
   function setFile(file) {
     if (!file || !hasAllowedExt(file.name)) {
       fileNameEl.textContent = 'Please select a .npy, .h5, .hdf5, .csv or .txt file';
@@ -402,79 +682,267 @@
     selectedFile = file;
     fileNameEl.textContent = `${file.name}  (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
     fileNameEl.style.color = 'var(--primary)';
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Upload & Reconstruct';
+    fullJobBtn.disabled = false;
+    submitBtn.disabled  = false;
+    previewBtn.disabled = false;
   }
 
-  // ── Model Card Custom Radio Interactions ────────────────────────────────
+  function resetButtons() {
+    const has = !!selectedFile;
+    fullJobBtn.disabled = !has; fullJobBtn.textContent = 'Reconstruct + Preview Events (Parallel)';
+    submitBtn.disabled  = !has; submitBtn.textContent  = 'Reconstruct Only';
+    previewBtn.disabled = !has; previewBtn.innerHTML   = '&#9654; Preview Events Only';
+  }
+
+  // ── Model selection ─────────────────────────────────────────────────────
   document.querySelectorAll('.model-card').forEach(card => {
     card.addEventListener('click', () => {
       document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
-      // Bugfix: Synchronize and explicitly check the inner native hidden radio button
       const radio = card.querySelector('input[type="radio"]');
-      if(radio) radio.checked = true;
+      if (radio) radio.checked = true;
     });
   });
-  
-  function selectedModel() {
-    return document.querySelector('input[name="model"]:checked').value;
-  }
+  function selectedModel() { return document.querySelector('input[name="model"]:checked').value; }
 
-  // ── Task Form Submission & XHR File Upload ──────────────────────────────
-  submitBtn.addEventListener('click', startJob);
-
-  function startJob() {
-    if (!selectedFile) return;
-    uploadError.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Uploading…';
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('events_per_frame', document.getElementById('events-per-frame').value);
-    formData.append('num_bins', document.getElementById('num-bins').value);
-    formData.append('model', selectedModel());
-
-    const xhr        = new XMLHttpRequest();
+  // ── Upload helper ───────────────────────────────────────────────────────
+  function upload(endpoint, formData, onProgress, onDone, onError) {
+    const xhr = new XMLHttpRequest();
     const uploadWrap = document.getElementById('upload-bar-wrap');
     const uploadBar  = document.getElementById('upload-bar');
     uploadWrap.style.display = 'block';
-
-    // Track upload progress stream
     xhr.upload.addEventListener('progress', e => {
       if (e.lengthComputable) {
-        const pct = (e.loaded / e.total * 100).toFixed(1);
-        uploadBar.style.width = pct + '%';
-        submitBtn.textContent = `Uploading… ${pct}%`;
+        uploadBar.style.width = (e.loaded / e.total * 100).toFixed(1) + '%';
+        onProgress && onProgress(e.loaded / e.total);
       }
     });
-
-    // Handle upload success/failure load event
     xhr.addEventListener('load', () => {
       uploadWrap.style.display = 'none';
-      if (xhr.status !== 200) {
-        uploadError.textContent = 'Upload failed: ' + xhr.responseText;
-        submitBtn.disabled = false; submitBtn.textContent = 'Retry'; return;
-      }
-      const { job_id } = JSON.parse(xhr.responseText);
-      showProgress(); pollStatus(job_id);
+      uploadBar.style.width = '0%';
+      if (xhr.status !== 200) { onError(xhr.responseText); return; }
+      onDone(JSON.parse(xhr.responseText));
     });
-
-    // Handle network layer failures
-    xhr.addEventListener('error', () => {
-      uploadError.textContent = 'Network error during upload.';
-      submitBtn.disabled = false; submitBtn.textContent = 'Retry';
-    });
-    xhr.open('POST', '/api/reconstruct');
+    xhr.addEventListener('error', () => { uploadWrap.style.display = 'none'; onError('Network error'); });
+    xhr.open('POST', endpoint);
     xhr.send(formData);
   }
 
-  // ── Progress Polling & Dashboard Operations ────────────────────────────
-  function showProgress() {
-    document.getElementById('progress-card').style.display = 'block';
-    document.getElementById('status-msg').textContent = 'Starting…';
-    setProgress(0);
+  // ── Parallel full job ───────────────────────────────────────────────────
+  let dualState = null;
+
+  function startFullJob() {
+    if (!selectedFile) return;
+    uploadError.textContent = '';
+    fullJobBtn.disabled = true; fullJobBtn.textContent = 'Uploading…';
+    submitBtn.disabled  = true;
+    previewBtn.disabled = true;
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fd.append('events_per_frame', document.getElementById('events-per-frame').value);
+    fd.append('model', selectedModel());
+
+    upload('/api/full_job',
+      fd,
+      p => { fullJobBtn.textContent = `Uploading… ${(p * 100).toFixed(1)}%`; },
+      ({ reconstruct_job_id, preview_job_id }) => {
+        dualState = {
+          reconId: reconstruct_job_id, prevId: preview_job_id,
+          reconDone: false, prevDone: false,
+          reconFrames: 0, prevFrames: 0, totalFrames: 0,
+          ss: null, reconReport: null,
+        };
+        document.getElementById('dual-progress-card').style.display = 'block';
+        document.getElementById('dual-video-card').style.display = 'flex';
+        fullJobBtn.textContent = 'Processing…';
+        pollDual();
+      },
+      err => { uploadError.textContent = 'Upload failed: ' + err; resetButtons(); }
+    );
+  }
+
+  // Streaming canvas playback — synchronized across both jobs
+  function startDualStream(reconId, prevId) {
+    if (!dualState || dualState.ss) return;
+    const ss = { running: true, frame: -1 };
+    dualState.ss = ss;
+
+    const canvasR = document.getElementById('canvas-recon');
+    const canvasP = document.getElementById('canvas-prev');
+    const ctxR    = canvasR.getContext('2d');
+    const ctxP    = canvasP.getContext('2d');
+    const phR     = document.getElementById('recon-placeholder');
+    const phP     = document.getElementById('prev-placeholder');
+    let firstFrame = true;
+
+    function drawFrame(n) {
+      if (!ss.running) return;
+      const ds     = dualState;
+      const avail  = Math.min(ds ? ds.reconFrames : 0, ds ? ds.prevFrames : 0);
+      if (n >= avail) {
+        setTimeout(() => drawFrame(n), 80);
+        return;
+      }
+
+      let loaded = 0, errored = false;
+      const imgR = new Image(), imgP = new Image();
+
+      function onLoad() {
+        if (!ss.running) return;
+        if (++loaded < 2) return;
+        if (firstFrame) {
+          firstFrame = false;
+          canvasR.width  = imgR.naturalWidth;  canvasR.height = imgR.naturalHeight;
+          canvasP.width  = imgP.naturalWidth;  canvasP.height = imgP.naturalHeight;
+          canvasR.style.display = 'block';
+          canvasP.style.display = 'block';
+          phR.style.display = 'none';
+          phP.style.display = 'none';
+        }
+        ctxR.drawImage(imgR, 0, 0);
+        ctxP.drawImage(imgP, 0, 0);
+        ss.frame = n;
+        const next  = n + 1;
+        const ds2   = dualState;
+        const total = ds2 ? ds2.totalFrames : 0;
+        const allIn = total > 0
+          && (ds2 ? ds2.reconFrames : 0) >= total
+          && (ds2 ? ds2.prevFrames  : 0) >= total;
+        // loop back once all frames are available; stop when video player takes over
+        setTimeout(() => drawFrame(allIn && next >= total ? 0 : next), 33);
+      }
+
+      function onError() {
+        if (!ss.running || errored) return;
+        errored = true;
+        setTimeout(() => drawFrame(n), 150);
+      }
+
+      imgR.onload = onLoad; imgR.onerror = onError;
+      imgP.onload = onLoad; imgP.onerror = onError;
+      imgR.src = `/api/frame/${reconId}/${n}`;
+      imgP.src = `/api/frame/${prevId}/${n}`;
+    }
+
+    drawFrame(0);
+  }
+
+  function transitionDualToVideo() {
+    if (!dualState) return;
+    if (dualState.ss) dualState.ss.running = false;
+    activateDualVideo('recon', dualState.reconId, dualState.reconReport);
+    activateDualVideo('prev',  dualState.prevId,  null);
+  }
+
+  function pollDual() {
+    if (!dualState) return;
+    const { reconId, prevId } = dualState;
+    Promise.all([
+      fetch(`/api/status/${reconId}`).then(r => r.json()),
+      fetch(`/api/status/${prevId}`).then(r => r.json()),
+    ]).then(([recon, prev]) => {
+      if (!dualState) return;
+      updateDualBar('recon', recon);
+      updateDualBar('prev',  prev);
+
+      // frames on disk: during encoding/done all frames are written
+      dualState.reconFrames = (recon.status === 'encoding' || recon.status === 'done')
+        ? (recon.total || 0) : (recon.done || 0);
+      dualState.prevFrames  = (prev.status  === 'encoding' || prev.status  === 'done')
+        ? (prev.total  || 0) : (prev.done  || 0);
+      if (recon.total > 0) dualState.totalFrames = recon.total;
+
+      // start canvas streaming as soon as first recon frame exists
+      if (!dualState.ss && dualState.reconFrames > 0) {
+        startDualStream(reconId, prevId);
+      }
+
+      if (recon.status === 'done' && !dualState.reconDone) {
+        dualState.reconDone   = true;
+        dualState.reconReport = recon.report || null;
+      }
+      if (prev.status === 'done' && !dualState.prevDone) {
+        dualState.prevDone = true;
+      }
+
+      const reconFinal = dualState.reconDone || recon.status === 'error';
+      const prevFinal  = dualState.prevDone  || prev.status  === 'error';
+
+      if (!reconFinal || !prevFinal) {
+        setTimeout(pollDual, 1500);
+      } else {
+        transitionDualToVideo();
+        document.getElementById('dual-progress-card').style.display = 'none';
+        document.getElementById('dual-video-card').scrollIntoView({ behavior: 'smooth' });
+        dualState = null;
+        resetButtons();
+      }
+    }).catch(() => setTimeout(pollDual, 3000));
+  }
+
+  function updateDualBar(type, job) {
+    document.getElementById(`${type}-msg`).textContent = job.message || job.status;
+    let p = 0;
+    if ((job.status === 'reconstructing' || job.status === 'rendering') && job.total > 0)
+      p = job.done / job.total * 90;
+    else if (job.status === 'encoding') p = 95;
+    else if (job.status === 'loading')  p = 5;
+    else if (job.status === 'done')     p = 100;
+    document.getElementById(`${type}-bar`).style.width = p + '%';
+    document.getElementById(`${type}-pct`).textContent = p.toFixed(0) + '%';
+  }
+
+  function activateDualVideo(type, jobId, report) {
+    const video = document.getElementById(`video-${type}`);
+    video.src = `/api/video/${jobId}`;
+    video.style.display = 'block';
+    document.getElementById(`${type}-placeholder`).style.display = 'none';
+    document.getElementById(`canvas-${type}`).style.display = 'none';
+    const dl = document.getElementById(`dl-${type}`);
+    dl.href = `/api/video/${jobId}`;
+    dl.style.display = 'flex';
+    if (type === 'recon' && report) showReport('recon-report', report);
+  }
+
+  // ── Single job ──────────────────────────────────────────────────────────
+  fullJobBtn.addEventListener('click', startFullJob);
+  submitBtn.addEventListener('click',  () => startSingleJob('/api/reconstruct'));
+  previewBtn.addEventListener('click', () => startSingleJob('/api/event_preview'));
+
+  function startSingleJob(endpoint) {
+    if (!selectedFile) return;
+    uploadError.textContent = '';
+    const isPreview = endpoint === '/api/event_preview';
+    fullJobBtn.disabled = true;
+    submitBtn.disabled  = true;
+    previewBtn.disabled = true;
+    if (isPreview) previewBtn.textContent = 'Uploading…';
+    else submitBtn.textContent = 'Uploading…';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fd.append('events_per_frame', document.getElementById('events-per-frame').value);
+    if (!isPreview) {
+      fd.append('num_bins', document.getElementById('num-bins').value);
+      fd.append('model', selectedModel());
+    }
+
+    upload(endpoint,
+      fd,
+      p => {
+        const label = `Uploading… ${(p * 100).toFixed(1)}%`;
+        if (isPreview) previewBtn.textContent = label;
+        else submitBtn.textContent = label;
+      },
+      ({ job_id }) => {
+        document.getElementById('progress-card').style.display = 'block';
+        document.getElementById('status-msg').textContent = 'Starting…';
+        setProgress(0);
+        pollSingle(job_id, isPreview);
+      },
+      err => { uploadError.textContent = 'Upload failed: ' + err; resetButtons(); }
+    );
   }
 
   function setProgress(pct, label) {
@@ -483,27 +951,69 @@
     if (label) document.getElementById('status-msg').textContent = label;
   }
 
-  // Poll backend API for processing jobs status recursively
-  function pollStatus(jobId) {
+  function pollSingle(jobId, isPreview) {
     fetch(`/api/status/${jobId}`)
       .then(r => r.json())
       .then(job => {
         document.getElementById('status-msg').textContent = job.message || job.status;
-        if (job.status === 'reconstructing' && job.total > 0) setProgress(job.done / job.total * 90, job.message);
+        if ((job.status === 'reconstructing' || job.status === 'rendering') && job.total > 0)
+          setProgress(job.done / job.total * 90, job.message);
         else if (job.status === 'encoding') setProgress(95, 'Encoding video…');
         else if (job.status === 'loading')  setProgress(5,  'Loading events…');
-        
-        if (job.status === 'done')  { setProgress(100, 'Done!'); showVideo(jobId); return; }
+
+        if (job.status === 'done') {
+          setProgress(100, 'Done!');
+          showSingleVideo(jobId, isPreview, job.report);
+          return;
+        }
         if (job.status === 'error') {
           document.getElementById('status-msg').textContent = '❌ ' + job.message;
-          submitBtn.disabled = false; submitBtn.textContent = 'Try Again'; return;
+          resetButtons();
+          return;
         }
-        setTimeout(() => pollStatus(jobId), 1500);
+        setTimeout(() => pollSingle(jobId, isPreview), 1500);
       })
-      .catch(() => setTimeout(() => pollStatus(jobId), 3000));
+      .catch(() => setTimeout(() => pollSingle(jobId, isPreview), 3000));
   }
 
-  // ── Custom HTML5 Video Custom Controller Implementations ────────────────
+  function showSingleVideo(jobId, isPreview, report) {
+    const url = `/api/video/${jobId}`;
+    document.getElementById('video-title').textContent = isPreview ? 'Event Preview' : 'Reconstruction';
+    video.src   = url;
+    video.loop  = true;
+    dlBtn.href  = url;
+    dlBtn.download = isPreview ? 'event_preview.mp4' : 'reconstruction.mp4';
+    document.getElementById('progress-card').style.display = 'none';
+    document.getElementById('video-card').style.display = 'flex';
+    document.getElementById('video-card').scrollIntoView({ behavior: 'smooth' });
+    if (!isPreview && report) showReport('single-report', report);
+    resetButtons();
+  }
+
+  // ── Inference report ────────────────────────────────────────────────────
+  function showReport(elId, r) {
+    const el  = document.getElementById(elId);
+    if (!el || !r) return;
+    const empty = document.querySelector('.eval-empty');
+    if (empty) empty.style.display = 'none';
+
+    const parts = [];
+    if (typeof r.quality_score !== 'undefined') parts.push(`<span>Quality</span> ${Number(r.quality_score).toFixed(3)}`);
+    if (typeof r.psnr !== 'undefined') parts.push(`<span>PSNR</span> ${Number(r.psnr).toFixed(2)} dB`);
+    if (typeof r.ssim !== 'undefined') parts.push(`<span>SSIM</span> ${Number(r.ssim).toFixed(3)}`);
+    if (typeof r.lpips !== 'undefined') parts.push(`<span>LPIPS</span> ${Number(r.lpips).toFixed(3)}`);
+    if (typeof r.inference_ms !== 'undefined') parts.push(`<span>Inference</span> ${(r.inference_ms / 1000).toFixed(1)}s`);
+    if (typeof r.fps !== 'undefined') parts.push(`<span>Throughput</span> ${r.fps} fps`);
+    if (typeof r.encode_ms !== 'undefined') parts.push(`<span>Encode</span> ${(r.encode_ms / 1000).toFixed(1)}s`);
+    if (typeof r.gpu_peak_mb !== 'undefined' && r.gpu_peak_mb > 0) parts.push(`<span>GPU peak</span> ${(r.gpu_peak_mb / 1024).toFixed(2)} GB`);
+    if (typeof r.frames !== 'undefined') parts.push(`<span>Frames</span> ${r.frames}`);
+    if (typeof r.comment !== 'undefined') parts.push(`<span>Comment</span> ${r.comment}`);
+
+    el.innerHTML = parts.length ? parts.join(' &nbsp;|&nbsp; ') : '<span>Report</span> No numeric metrics returned';
+    el.style.display = 'block';
+  }
+
+  // ── Single video custom controls ────────────────────────────────────────
   const video     = document.getElementById('video-player');
   const seekBar   = document.getElementById('seek-bar');
   const timeLabel = document.getElementById('vctrl-time');
@@ -516,13 +1026,11 @@
   const dlBtn     = document.getElementById('download-btn');
   const FPS       = 30;
 
-  // Format seconds counter to mm:ss format
   function fmtTime(s) {
     const m = Math.floor(s / 60), sec = Math.floor(s % 60).toString().padStart(2, '0');
     return `${m}:${sec}`;
   }
 
-  // Synchronize playback timeline tick events
   video.addEventListener('timeupdate', () => {
     if (!video.duration) return;
     seekBar.value = video.currentTime / video.duration;
@@ -531,37 +1039,17 @@
   video.addEventListener('play',  () => { btnPlay.innerHTML = '&#9646;&#9646;'; });
   video.addEventListener('pause', () => { btnPlay.innerHTML = '&#9654;'; });
 
-  // Direct scrub seeking controls
   seekBar.addEventListener('input', () => { if (video.duration) video.currentTime = seekBar.value * video.duration; });
   btnPlay.addEventListener('click', () => video.paused ? video.play() : video.pause());
-  
-  // Frame-by-frame navigation adjustments
   btnPrev.addEventListener('click', () => { video.pause(); video.currentTime = Math.max(0, video.currentTime - 1 / FPS); });
   btnNext.addEventListener('click', () => { video.pause(); video.currentTime = Math.min(video.duration || 0, video.currentTime + 1 / FPS); });
-  
-  // Custom loop dynamic toggles
   btnLoop.addEventListener('click', () => { video.loop = !video.loop; btnLoop.classList.toggle('active', video.loop); });
   btnLoop.classList.add('active');
-  
-  // HTML5 Screen Fullscreen layout actions
   btnFs.addEventListener('click', () => {
     const el = document.getElementById('video-card');
     document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen();
   });
   speedSel.addEventListener('change', () => { video.playbackRate = parseFloat(speedSel.value); });
-
-  // Inject reconstructed source stream URL to UI blocks
-  function showVideo(jobId) {
-    const url       = `/api/video/${jobId}`;
-    const videoCard = document.getElementById('video-card');
-    video.src  = url;
-    video.loop = true;
-    dlBtn.href = url;
-    videoCard.style.display = 'block';
-    videoCard.scrollIntoView({ behavior: 'smooth' });
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Reconstruct Another';
-  }
 </script>
 </body>
 </html>

@@ -1,0 +1,8 @@
+{
+  "extraPaths": [
+    ".",
+    "reconstruct/e2vid"
+  ],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "off"
+}

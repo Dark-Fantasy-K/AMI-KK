@@ -31,7 +31,15 @@ def load_events(path: str | Path) -> dict:
         with h5py.File(path, "r") as f:
             return {k: f[k][:] for k in ("x", "y", "t", "p")}
     elif path.suffix == ".txt":
-        data = np.loadtxt(path)
+        npy_path = path.with_suffix(".npy")
+        if npy_path.exists():
+            data = np.load(npy_path)
+        else:
+            with open(path) as f:
+                first = f.readline().split()
+            skiprows = 1 if len(first) < 4 else 0
+            data = np.loadtxt(path, skiprows=skiprows)
+            np.save(npy_path, data)
         return {"x": data[:, 0].astype(np.int32),
                 "y": data[:, 1].astype(np.int32),
                 "t": data[:, 2].astype(np.float64),

@@ -1,5 +1,23 @@
-flask>=3.0
-numpy
-pandas
-opencv-python-headless
-h5py
+# ── App (app/server.py) ────────────────────────────────────────────────────────
+fastapi>=0.111
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+numpy>=1.24
+pandas>=2.0
+
+# ── FireNet & E2VID reconstruction (reconstruct/firenet, reconstruct/e2vid) ────
+# torch must be installed separately with the appropriate CUDA index, e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0
+torchvision>=0.15
+scipy>=1.10
+h5py>=3.8
+
+# ── OpenCV ─────────────────────────────────────────────────────────────────────
+# Use opencv-python-headless on servers (no display).
+# Use opencv-python locally if you need --display / --show_events.
+opencv-python-headless>=4.8
+
+# ── Utilities ──────────────────────────────────────────────────────────────────
+matplotlib>=3.7        # scripts/resample_reconstructions.py
+gdown>=4.7             # download pretrained weights from Google Drive
